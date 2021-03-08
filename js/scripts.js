@@ -13,13 +13,10 @@ let modalClose = '';
 let modalPrev = '';
 let modalNext = '';
 let currentModal = '';
+let modalInfoContainer = '';
 let cards = '';
 let data = '';
-
-
-////////////////////////////////////////
-// LISTENERS
-////////////////////////////////////////
+let originalData = '';
 
 let xhr = new XMLHttpRequest();
 xhr.onreadystatechange = function() {
@@ -27,14 +24,18 @@ xhr.onreadystatechange = function() {
     let personData = JSON.parse(xhr.responseText);
     //createCard(person);
     data = personData.results;
-    console.log(data[10]);
+    originalData = data;
     loopPeopleData(data);
     cards = document.querySelectorAll(".card");
-    addListenersForModal();
+    addListenersForCards();
   }  
 };
-xhr.open('GET', 'https://randomuser.me/api/?results=12');
+xhr.open('GET', 'https://randomuser.me/api/?results=12&noinfo&nat=ca,de,dk,es,fi,fr,gb,us');
 xhr.send();
+
+////////////////////////////////////////
+// SEARCH BAR
+////////////////////////////////////////
 
 /**
  * 
@@ -49,77 +50,68 @@ function createSearchBox() {
   searchContainer.insertAdjacentHTML('beforeend', searchBoxHTML);
 }
 
-function createCard(data, index) {
-  const personCardHTML = `
-  <div class="card" id="${index}">
-    <div class="card-img-container">
-      <img class="card-img" src="${data.picture.large}" alt="profile picture">
-    </div>
-    <div class="card-info-container">
-      <h3 id="name" class="card-name cap">${data.name.first + data.name.last}</h3>
-      <p class="card-text">${data.email}</p>
-      <p class="card-text cap">${data.location.city}, ${data.location.state}</p>
-    </div>
-  </div>
-  `;
-  galleryDiv.insertAdjacentHTML('beforeend', personCardHTML);
+searchInput.addEventListener('keyup', function(e){
+  searchForInput(e.target.value);
+});
+
+searchSubmit.addEventListener('click', function(e){
+  searchForInput(searchInput.value);
+});
+
+/**
+ * 
+ * @param {string} inputValue 
+ */
+ function searchForInput(inputValue) {  
+  galleryDiv.innerHTML = '';
+  const filteredData = originalData.filter(person => {
+    const match = `${person.name.first} ${person.name.first}`.toLowerCase();
+    return match.includes(inputValue);
+  });  
+  loopPeopleData(filteredData);
+  data = filteredData;
+  cards = document.querySelectorAll(".card");
+  addListenersForCards();
 }
 
+////////////////////////////////////////
+// PROFILE CARDS
+////////////////////////////////////////
 
-function createModal(data, index) {
-  const person = data[index];
-  if (modalContainer !== '') {
-    modalContainer.remove();
-  }
-  const modalHTML = `
-    <div class="modal-container">
-      <div class="modal">
-        <button type="button" id="modal-close-btn" class="modal-close-btn"><strong>X</strong></button>
-        <div class="modal-info-container">
-            <img class="modal-img" src="${person.picture.large}" alt="profile picture">
-            <h3 id="name" class="modal-name cap">${person.name.first + person.name.last}</h3>
-            <p class="modal-text">${person.email}</p>
-            <p class="modal-text cap">${person.location.city}</p>
-            <hr>
-            <p class="modal-text">${person.cell}</p>
-            <p class="modal-text">${person.location.street + person.location.city + person.location.state + person.location.postalcode}</p>
-            <p class="modal-text">Birthday: ${person.dob.date}</p>
+/**
+ * 
+ * @param {object} person 
+ * @param {number} index 
+ */
+function createCard(person=null, index=0) {
+  let personCardHTML = '';
+  if(!person) {
+    personCardHTML = ` 
+        <div class="card empty-card">
+          <h2>No results!</h2>
         </div>
-      </div>
-      <div class="modal-btn-container">
-        <button type="button" id="modal-prev" class="modal-prev btn">Prev</button>
-        <button type="button" id="modal-next" class="modal-next btn">Next</button>
-      </div>
-    </div>
-
-    `;  
-  body.insertAdjacentHTML('beforeend', modalHTML);  
-  modalClose = document.querySelector("#modal-close-btn");
-  modalPrev = document.querySelector("#modal-prev");
-  modalNext = document.querySelector("#modal-next");
-  modalContainer = document.querySelector(".modal-container");
-  removeModalByClick();
-  modalPrevPerson();
-  modalNextPerson()
-}
-
-  // IMPORTANT: Below is only for exceeds tasks 
-
-
-  /**
-   * 
-   * @param {array} data 
-   */
-function loopPeopleData(data) {
-  data.forEach((person, index) => {
-    createCard(person, index);
-  });
+        `;
+  } else {
+    personCardHTML = `
+      <div class="card" id="${index}" tabindex="0">
+        <div class="card-img-container">
+          <img class="card-img" src="${person.picture.large}" alt="profile picture">
+        </div>
+        <div class="card-info-container">
+          <h3 id="name" class="card-name cap">${person.name.first} ${person.name.last}</h3>
+          <p class="card-text">${person.email}</p>
+          <p class="card-text cap">${person.location.city}, ${person.location.state}</p>
+        </div>
+        </div>
+      `;
+  }
+  galleryDiv.insertAdjacentHTML('beforeend', personCardHTML);
 }
 
 /**
  * 
  */
-function addListenersForModal() {
+ function addListenersForCards() {
   cards.forEach(card => {
     card.addEventListener('click', function() {
       createModal(data, this.id);  
@@ -128,29 +120,130 @@ function addListenersForModal() {
   })
 }
 
+
+/**
+ * 
+ * @param {*} data 
+ * @param {*} index 
+ */
+function createModal(data, index) {
+  const person = data[index];
+  if (modalContainer !== '') {
+    modalContainer.remove();
+  }
+  const modalHTML = createModalHTML(person);
+  body.insertAdjacentHTML('beforeend', modalHTML);  
+  modalClose = document.querySelector("#modal-close-btn");
+  modalPrev = document.querySelector("#modal-prev");
+  modalNext = document.querySelector("#modal-next");
+  modalContainer = document.querySelector(".modal-container");
+  modalInfoContainer = document.querySelector(".modal-info-container");
+  removeModalByClick();
+  modalPrevPerson();
+  modalNextPerson();
+}
+
+/**
+ * 
+ * @param {array} data 
+ */
+function loopPeopleData(data) {
+  if(!data.length) {
+    createCard();
+  } else {
+    data.forEach((person, index) => {
+      createCard(person, index);
+    });
+  }
+}
+
+function addPagination() {
+  
+}
+
+
+
+
+
+
+////////////////////////////////////////
+// MODAL 
+////////////////////////////////////////
+
+/**
+ * 
+ * @param {*} person 
+ * @returns 
+ */
+function createModalHTML(person) {
+  const modalHTML = `
+  <div class="modal-container">
+    <div class="modal">
+      <button type="button" id="modal-close-btn" class="modal-close-btn"><strong>X</strong></button>
+      <div class="modal-info-container">
+          <img class="modal-img" src="${person.picture.large}" alt="profile picture">
+          <h3 id="name" class="modal-name cap">${person.name.first + person.name.last}</h3>
+          <p class="modal-text">${person.email}</p>
+          <p class="modal-text cap">${person.location.city}</p>
+          <hr>
+          <p class="modal-text">${person.cell}</p>
+          <p class="modal-text">${person.location.street.number} ${person.location.street.name} <br>${person.location.city} ${person.location.state} ${person.location.postalcode}</p>
+          <p class="modal-text">Birthday: ${person.dob.date}</p>
+      </div>
+    </div>
+    <div class="modal-btn-container">
+      <button type="button" id="modal-prev" class="modal-prev btn">Prev</button>
+      <button type="button" id="modal-next" class="modal-next btn">Next</button>
+    </div>
+  </div>
+  `; 
+  return modalHTML;
+}
+
 /**
  * 
  */
 function removeModalByClick() {
-  modalClose.addEventListener('click', function() {    
-    modalContainer.remove();
-    modalContainer = '';
-    currentModal = '';
+  modalClose.addEventListener('click', createRemoveModalByClick);
+}
+
+/**
+ * 
+ * @param {event} e 
+ */
+function createRemoveModalByClick(e) {
+  modalContainer.remove();
+  modalContainer = '';
+  currentModal = '';
+}
+
+document.addEventListener('keyup', function(e) {
+  if (modalContainer !== '') {
+    if (e.key === "ArrowLeft") {
+      createmodalPrevPerson();
+    } else if (e.key === "Escape") {
+      createRemoveModalByClick();
+    } else if (e.key === "ArrowRight") {
+      createmodalNextPerson();
+    }
+  }
+});
+
+function modalPrevPerson() {
+  modalPrev.addEventListener('click', function() {
+    createmodalPrevPerson();
   });
 }
 
 /**
  * 
  */
-function modalPrevPerson() {
-  modalPrev.addEventListener('click', function() {
-    console.log(currentModal);
-    if(currentModal === 0) {
-      currentModal = data.length;
-    }
-    currentModal--;
-    createModal(data, currentModal);    
-  })
+ function createmodalPrevPerson() {
+  if(currentModal === 0) {
+    currentModal = data.length;
+  }
+  currentModal--;
+  createModal(data, currentModal);    
 }
 
 /**
@@ -158,11 +251,17 @@ function modalPrevPerson() {
  */
 function modalNextPerson() {
   modalNext.addEventListener('click', function() {
-    console.log(currentModal);
-    if(currentModal === 11) {
-      currentModal = -1;
-    }
-    currentModal++;
-    createModal(data, currentModal);    
-  })
+    createmodalNextPerson();
+  });
+}
+
+/**
+ * 
+ */
+function createmodalNextPerson() {
+  if(currentModal === data.length - 1) {
+    currentModal = -1;
+  }
+  currentModal++;
+  createModal(data, currentModal); 
 }
