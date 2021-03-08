@@ -7,6 +7,10 @@ createSearchBox();
 const searchInput = document.querySelector("#search-input");
 const searchSubmit = document.querySelector("#search-submit");
 const galleryDiv = document.querySelector("#gallery");
+const ulListHTML = `<ul id="pagination"></ul>`;
+galleryDiv.insertAdjacentHTML('afterend',ulListHTML);
+const paginationUl = document.querySelector("#pagination");
+const cardsPerPage = 12;
 const body = document.querySelector("body");
 let modalContainer = '';
 let modalClose = '';
@@ -22,15 +26,14 @@ let xhr = new XMLHttpRequest();
 xhr.onreadystatechange = function() {
   if (xhr.readyState === 4) {
     let personData = JSON.parse(xhr.responseText);
-    //createCard(person);
     data = personData.results;
     originalData = data;
-    loopPeopleData(data);
+    loopPeopleData(data, 1);    
     cards = document.querySelectorAll(".card");
     addListenersForCards();
   }  
 };
-xhr.open('GET', 'https://randomuser.me/api/?results=12&noinfo&nat=ca,de,dk,es,fi,fr,gb,us');
+xhr.open('GET', 'https://randomuser.me/api/?results=40&noinfo&nat=ca,de,dk,es,fi,fr,gb,us');
 xhr.send();
 
 ////////////////////////////////////////
@@ -51,11 +54,11 @@ function createSearchBox() {
 }
 
 searchInput.addEventListener('keyup', function(e){
-  searchForInput(e.target.value);
+  searchForInput(e.target.value.toLowerCase());
 });
 
 searchSubmit.addEventListener('click', function(e){
-  searchForInput(searchInput.value);
+  searchForInput(searchInput.value.toLowerCase());
 });
 
 /**
@@ -64,12 +67,11 @@ searchSubmit.addEventListener('click', function(e){
  */
  function searchForInput(inputValue) {  
   galleryDiv.innerHTML = '';
-  const filteredData = originalData.filter(person => {
+  data = originalData.filter(person => {
     const match = `${person.name.first} ${person.name.first}`.toLowerCase();
     return match.includes(inputValue);
-  });  
-  loopPeopleData(filteredData);
-  data = filteredData;
+  });
+  loopPeopleData(data, 1);  
   cards = document.querySelectorAll(".card");
   addListenersForCards();
 }
@@ -85,7 +87,7 @@ searchSubmit.addEventListener('click', function(e){
  */
 function createCard(person=null, index=0) {
   let personCardHTML = '';
-  if(!person) {
+  if(!data.length) {
     personCardHTML = ` 
         <div class="card empty-card">
           <h2>No results!</h2>
@@ -110,6 +112,28 @@ function createCard(person=null, index=0) {
 
 /**
  * 
+ * @param {array} data 
+ */
+ function loopPeopleData(data, page) {
+  const firstIndex = cardsPerPage * page - cardsPerPage;
+  const lastIndex = cardsPerPage * page;
+  galleryDiv.innerHTML = '';
+  paginationUl.innerHTML = '';
+  addPagination();
+  if(!data.length) {
+    createCard();
+  } else {
+    for (let i = firstIndex; i < lastIndex; i++) {
+      if(i < data.length) {
+        const person = data[i];
+        createCard(person, i);
+      }
+    }
+  }
+}
+
+/**
+ * 
  */
  function addListenersForCards() {
   cards.forEach(card => {
@@ -120,11 +144,10 @@ function createCard(person=null, index=0) {
   })
 }
 
-
 /**
  * 
- * @param {*} data 
- * @param {*} index 
+ * @param {array} data 
+ * @param {number} index 
  */
 function createModal(data, index) {
   const person = data[index];
@@ -138,27 +161,44 @@ function createModal(data, index) {
   modalNext = document.querySelector("#modal-next");
   modalContainer = document.querySelector(".modal-container");
   modalInfoContainer = document.querySelector(".modal-info-container");
-  removeModalByClick();
-  modalPrevPerson();
-  modalNextPerson();
+  removeModalByClickListener();
+  modalPrevPersonListener();
+  modalNextPersonListener();
 }
 
 /**
  * 
  * @param {array} data 
  */
-function loopPeopleData(data) {
-  if(!data.length) {
-    createCard();
-  } else {
-    data.forEach((person, index) => {
-      createCard(person, index);
-    });
-  }
-}
-
 function addPagination() {
+  const pages = Math.ceil(data.length/cardsPerPage);
   
+  for (let i = 0; i < pages; i++) {
+    if(i === 0) {
+      const paginationHTML = `
+        <li>
+          <button type="button" class="pagination-button active">${i+1}</button>
+        </li>
+        `;
+        paginationUl.insertAdjacentHTML('beforeend', paginationHTML);
+    } else {
+      const paginationHTML = `
+        <li>
+          <button type="button" class="pagination-button">${i+1}</button>
+        </li>
+        `;
+      paginationUl.insertAdjacentHTML('beforeend', paginationHTML);
+    }       
+  }  
+
+  const paginationButtons = document.querySelectorAll(".pagination-button");
+  paginationButtons.forEach(button => {
+    button.addEventListener('click', function(e) {
+        document.querySelector(".active").classList.remove("active");
+        e.target.classList.add("active");
+        loopPeopleData(data, e.target.innerHTML);      
+    });
+  });
 }
 
 
@@ -203,15 +243,15 @@ function createModalHTML(person) {
 /**
  * 
  */
-function removeModalByClick() {
-  modalClose.addEventListener('click', createRemoveModalByClick);
+function removeModalByClickListener() {
+  modalClose.addEventListener('click', createremoveModalByClickListener);
 }
 
 /**
  * 
  * @param {event} e 
  */
-function createRemoveModalByClick(e) {
+function createremoveModalByClickListener(e) {
   modalContainer.remove();
   modalContainer = '';
   currentModal = '';
@@ -220,25 +260,25 @@ function createRemoveModalByClick(e) {
 document.addEventListener('keyup', function(e) {
   if (modalContainer !== '') {
     if (e.key === "ArrowLeft") {
-      createmodalPrevPerson();
+      createmodalPrevPersonListener();
     } else if (e.key === "Escape") {
-      createRemoveModalByClick();
+      createremoveModalByClickListener();
     } else if (e.key === "ArrowRight") {
-      createmodalNextPerson();
+      createmodalNextPersonListener();
     }
   }
 });
 
-function modalPrevPerson() {
+function modalPrevPersonListener() {
   modalPrev.addEventListener('click', function() {
-    createmodalPrevPerson();
+    createmodalPrevPersonListener();
   });
 }
 
 /**
  * 
  */
- function createmodalPrevPerson() {
+ function createmodalPrevPersonListener() {
   if(currentModal === 0) {
     currentModal = data.length;
   }
@@ -249,16 +289,16 @@ function modalPrevPerson() {
 /**
  * 
  */
-function modalNextPerson() {
+function modalNextPersonListener() {
   modalNext.addEventListener('click', function() {
-    createmodalNextPerson();
+    createmodalNextPersonListener();
   });
 }
 
 /**
  * 
  */
-function createmodalNextPerson() {
+function createmodalNextPersonListener() {
   if(currentModal === data.length - 1) {
     currentModal = -1;
   }

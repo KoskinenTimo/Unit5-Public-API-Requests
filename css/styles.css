@@ -124,6 +124,24 @@ header h1 {
     text-transform: capitalize;
 }
 
+/* ===================================== 
+   Pagination
+======================================== */
+
+#pagination {
+    list-style: none;
+    display: flex;
+    justify-content: center;
+}
+
+.pagination-button {
+    margin: 4px;
+    display: block;
+    padding: 5px;
+    width: 2em;
+    height: 2em;
+}
+
 
 /* ===================================== 
    Modal
