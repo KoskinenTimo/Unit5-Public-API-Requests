@@ -6,15 +6,29 @@ const searchContainer = document.querySelector(".search-container");
 createSearchBox();
 const searchInput = document.querySelector("#search-input");
 const searchSubmit = document.querySelector("#search-submit");
+const galleryDiv = document.querySelector("#gallery");
 
 
 ////////////////////////////////////////
 // LISTENERS
 ////////////////////////////////////////
-console.log(searchInput);
-console.log(searchSubmit);
 
-/*  */
+galleryDiv.addEventListener('click', function(e) {
+  if(e.target.classname === "card") {
+    console.log(e.target.id);
+  }
+})
+
+let xhr = new XMLHttpRequest();
+xhr.onreadystatechange = function() {
+  if (xhr.readyState === 4) {
+    let personData = JSON.parse(xhr.responseText);
+    //createCard(person);
+    loopPeopleData(personData.results);
+  }  
+};
+xhr.open('GET', 'https://randomuser.me/api/?results=12');
+xhr.send();
 
 ////////////////////////////////////////
 // FUNCTIONS
@@ -33,19 +47,20 @@ function createSearchBox() {
   searchContainer.insertAdjacentHTML('beforeend', searchBoxHTML);
 }
 
-function createCard() {
+function createCard(personJSON) {
   const personCardHTML = `
   <div class="card">
     <div class="card-img-container">
-      <img class="card-img" src="https://placehold.it/90x90" alt="profile picture">
+      <img class="card-img" src="${personJSON.picture.large}" alt="profile picture">
     </div>
     <div class="card-info-container">
-      <h3 id="name" class="card-name cap">first last</h3>
-      <p class="card-text">email</p>
-      <p class="card-text cap">city, state</p>
+      <h3 id="name" class="card-name cap">${personJSON.name.first + personJSON.name.last}</h3>
+      <p class="card-text">${personJSON.email}</p>
+      <p class="card-text cap">${personJSON.location.city}, ${personJSON.location.state}</p>
     </div>
   </div>
   `;
+  galleryDiv.insertAdjacentHTML('beforeend', personCardHTML);
 }
 
 
@@ -74,3 +89,9 @@ function createModal() {
   //     <button type="button" id="modal-prev" class="modal-prev btn">Prev</button>
   //     <button type="button" id="modal-next" class="modal-next btn">Next</button>
   // </div>
+
+function loopPeopleData(dataArray) {
+  dataArray.forEach(person => {
+    createCard(person);
+  });
+}
