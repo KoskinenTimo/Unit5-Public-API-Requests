@@ -1,36 +1,46 @@
 ////////////////////////////////////////
-// SELECTORS/VARIABLES
+// SELECTORS/VARIABLES/DATA CALLS
+// AND ISERTING NEEDED ELEMENTS
 ////////////////////////////////////////
 
 const searchContainer = document.querySelector(".search-container");
+
 createSearchBox();
+
 const searchInput = document.querySelector("#search-input");
 const searchSubmit = document.querySelector("#search-submit");
 const galleryDiv = document.querySelector("#gallery");
 const ulListHTML = `<ul id="pagination"></ul>`;
+
 galleryDiv.insertAdjacentHTML('afterend',ulListHTML);
+
 const paginationUl = document.querySelector("#pagination");
 const cardsPerPage = 12;
 const body = document.querySelector("body");
-let modalContainer = '';
-let modalClose = '';
-let modalPrev = '';
-let modalNext = '';
-let currentModal = '';
-let modalInfoContainer = '';
-let cards = '';
-let data = '';
-let originalData = '';
+let modalContainer = ''; // modal view
+let modalCloseButton = '';
+let modalPrevButton = '';
+let modalNextButton = '';
+let currentModal = ''; // id of the Modal that is viewed
+let cards = ''; // profile cards in gallery
+let data = ''; // data array that changes whenever a search is done
+let originalData = ''; // original data that does not change after initial set
 
+/**
+ * Gets 40 profiles with western nationality. After receiving the data, creates the first gallery view.
+ */
 let xhr = new XMLHttpRequest();
 xhr.onreadystatechange = function() {
   if (xhr.readyState === 4) {
     let personData = JSON.parse(xhr.responseText);
     data = personData.results;
     originalData = data;
-    loopPeopleData(data, 1);    
+    showPersonCards(data, 1);    
     cards = document.querySelectorAll(".card");
-    addListenersForCards();
+    if(data.length) {
+      addListenersForCards();
+    }
+    
   }  
 };
 xhr.open('GET', 'https://randomuser.me/api/?results=40&noinfo&nat=ca,de,dk,es,fi,fr,gb,us');
@@ -41,7 +51,7 @@ xhr.send();
 ////////////////////////////////////////
 
 /**
- * 
+ * Creates the search bar to top right of the screen.
  */
 function createSearchBox() {
   const searchBoxHTML = `
@@ -53,16 +63,25 @@ function createSearchBox() {
   searchContainer.insertAdjacentHTML('beforeend', searchBoxHTML);
 }
 
+/**
+ * Real-time search when typing in search input.
+ */
 searchInput.addEventListener('keyup', function(e){
   searchForInput(e.target.value.toLowerCase());
 });
 
+/**
+ * Search that happens when submit button is clicked.
+ */
 searchSubmit.addEventListener('click', function(e){
+  e.preventDefault();
   searchForInput(searchInput.value.toLowerCase());
+  searchInput.value = '';
 });
 
 /**
- * 
+ * Search function to check from 'originalData' for results each time this is called. 
+ * Refreshes gallery view each time.
  * @param {string} inputValue 
  */
  function searchForInput(inputValue) {  
@@ -71,9 +90,11 @@ searchSubmit.addEventListener('click', function(e){
     const match = `${person.name.first} ${person.name.first}`.toLowerCase();
     return match.includes(inputValue);
   });
-  loopPeopleData(data, 1);  
+  showPersonCards(data, 1);  
   cards = document.querySelectorAll(".card");
-  addListenersForCards();
+  if (data.length) {
+    addListenersForCards();
+  }
 }
 
 ////////////////////////////////////////
@@ -81,7 +102,8 @@ searchSubmit.addEventListener('click', function(e){
 ////////////////////////////////////////
 
 /**
- * 
+ * Creates the wanted profile card when called. If this function is called and the 'data' array
+ * is empty, "No Results!" text is inserted to the gallery.
  * @param {object} person 
  * @param {number} index 
  */
@@ -111,10 +133,11 @@ function createCard(person=null, index=0) {
 }
 
 /**
- * 
+ * Displays the wanted 12 cards or less on page. Calls 'createCard' to get each card implemented
+ * on gallery view.
  * @param {array} data 
  */
- function loopPeopleData(data, page) {
+ function showPersonCards(data, page) {
   const firstIndex = cardsPerPage * page - cardsPerPage;
   const lastIndex = cardsPerPage * page;
   galleryDiv.innerHTML = '';
@@ -128,12 +151,13 @@ function createCard(person=null, index=0) {
         const person = data[i];
         createCard(person, i);
       }
-    }
-  }
+    }    
+  }  
 }
 
 /**
- * 
+ * Adds a listener to each card in gallery for click events. This function is called
+ * everytime the card view changes by search or pagination change.
  */
  function addListenersForCards() {
   cards.forEach(card => {
@@ -145,7 +169,8 @@ function createCard(person=null, index=0) {
 }
 
 /**
- * 
+ * Creates the modal screen from data array. Listeners for Modal view are called here.
+ * 'createModalHTML' is called to create the HTML and it is inserted directly here to the DOM.
  * @param {array} data 
  * @param {number} index 
  */
@@ -156,18 +181,18 @@ function createModal(data, index) {
   }
   const modalHTML = createModalHTML(person);
   body.insertAdjacentHTML('beforeend', modalHTML);  
-  modalClose = document.querySelector("#modal-close-btn");
-  modalPrev = document.querySelector("#modal-prev");
-  modalNext = document.querySelector("#modal-next");
+  modalCloseButton = document.querySelector("#modal-close-btn");
+  modalPrevButton = document.querySelector("#modal-prev");
+  modalNextButton = document.querySelector("#modal-next");
   modalContainer = document.querySelector(".modal-container");
-  modalInfoContainer = document.querySelector(".modal-info-container");
   removeModalByClickListener();
   modalPrevPersonListener();
   modalNextPersonListener();
 }
 
 /**
- * 
+ * Adds a pagination bar with buttons below the gallery view. Each 'page' displays 'cardsPerPage'
+ * number of cards. Pagination updates with the search results.
  * @param {array} data 
  */
 function addPagination() {
@@ -196,39 +221,44 @@ function addPagination() {
     button.addEventListener('click', function(e) {
         document.querySelector(".active").classList.remove("active");
         e.target.classList.add("active");
-        loopPeopleData(data, e.target.innerHTML);      
+        showPersonCards(data, e.target.innerHTML);  
+        cards = document.querySelectorAll(".card");  
+        if (data.length) {
+          addListenersForCards();
+        }  
     });
   });
 }
-
-
-
-
 
 
 ////////////////////////////////////////
 // MODAL 
 ////////////////////////////////////////
 
+
 /**
- * 
- * @param {*} person 
- * @returns 
+ * Creates the HTML code from person object which includes all the individual details. These details
+ * are implemented into the modal HTML string. This is called to create the modal screen or to
+ * update it to the next or the previous person.
+ * @param {object} person 
+ * @returns {string} (template literal HTML)
  */
 function createModalHTML(person) {
+  const cleanCellNumber = formatCellNumber(person.cell);  
+  const cleandob = formatDOB(person.dob.date);
   const modalHTML = `
   <div class="modal-container">
     <div class="modal">
       <button type="button" id="modal-close-btn" class="modal-close-btn"><strong>X</strong></button>
       <div class="modal-info-container">
           <img class="modal-img" src="${person.picture.large}" alt="profile picture">
-          <h3 id="name" class="modal-name cap">${person.name.first + person.name.last}</h3>
+          <h3 id="name" class="modal-name cap">${person.name.first} ${person.name.last}</h3>
           <p class="modal-text">${person.email}</p>
           <p class="modal-text cap">${person.location.city}</p>
           <hr>
-          <p class="modal-text">${person.cell}</p>
-          <p class="modal-text">${person.location.street.number} ${person.location.street.name} <br>${person.location.city} ${person.location.state} ${person.location.postalcode}</p>
-          <p class="modal-text">Birthday: ${person.dob.date}</p>
+          <p class="modal-text">${cleanCellNumber}</p>
+          <p class="modal-text">${person.location.street.number} ${person.location.street.name} <br>${person.location.city} ${person.location.state} ${person.location.postcode}</p>
+          <p class="modal-text">Birthday: ${cleandob}</p>
       </div>
     </div>
     <div class="modal-btn-container">
@@ -241,22 +271,44 @@ function createModalHTML(person) {
 }
 
 /**
- * 
+ * Formats the Cell number to correct form.
+ * @param {string} cell 
+ * @returns {string}
  */
-function removeModalByClickListener() {
-  modalClose.addEventListener('click', createremoveModalByClickListener);
+function formatCellNumber(cell) {
+  const cleanCellNumber = cell.replace(/\D/g, '');
+  return cleanCellNumber.replace(/(\d{3})(\d{3})(\d{2,})/, "($1) $2-$3");
 }
 
 /**
- * 
- * @param {event} e 
+ * Formats the DOB string to correct form.
+ * @param {string} dob 
+ * @returns {string}
  */
-function createremoveModalByClickListener(e) {
+function formatDOB(dob) {
+  const cleanDOB = dob.replace(/\D/g, '');
+  return cleanDOB.replace(/^(\d{4})(\d{2})(\d{2})(\d*)/, "$2/$3/$1");
+}
+
+/**
+ * Adds a listener to close Modal screen from X in top right corner.
+ */
+function removeModalByClickListener() {
+  modalCloseButton.addEventListener('click', createremoveModalByClickListener);
+}
+
+/**
+ * Removes modal screen and updates variables 'modalContainer' and 'currentModal'.
+ */
+function createremoveModalByClickListener() {
   modalContainer.remove();
   modalContainer = '';
   currentModal = '';
 }
 
+/**
+ * Adds listeners to navigate with arrows and escape inside modal screen.
+ */
 document.addEventListener('keyup', function(e) {
   if (modalContainer !== '') {
     if (e.key === "ArrowLeft") {
@@ -269,14 +321,17 @@ document.addEventListener('keyup', function(e) {
   }
 });
 
+/**
+ * Creates a listener for previous button.
+ */
 function modalPrevPersonListener() {
-  modalPrev.addEventListener('click', function() {
+  modalPrevButton.addEventListener('click', function() {
     createmodalPrevPersonListener();
   });
 }
 
 /**
- * 
+ * If called, updates 'currentModal' to the new value and loads previous person to the modal screen.
  */
  function createmodalPrevPersonListener() {
   if(currentModal === 0) {
@@ -287,16 +342,16 @@ function modalPrevPersonListener() {
 }
 
 /**
- * 
+ * Creates a listener for next button.
  */
 function modalNextPersonListener() {
-  modalNext.addEventListener('click', function() {
+  modalNextButton.addEventListener('click', function() {
     createmodalNextPersonListener();
   });
 }
 
 /**
- * 
+ * If called, updates 'currentModal' to the new value and loads next person to the modal screen.
  */
 function createmodalNextPersonListener() {
   if(currentModal === data.length - 1) {
