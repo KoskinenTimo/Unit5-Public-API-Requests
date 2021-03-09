@@ -42,3 +42,8 @@ height: 2em;
 {
 background-color: rgba(100, 100, 100, 0.3);
 }
+
+______________________________________________________________
+MODAL VIEW
+
+Added key navigation, ArrowLeft to go to previous, ArrowRight to go to next and Esc to close the view.
