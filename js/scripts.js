@@ -36,6 +36,7 @@ xhr.onreadystatechange = function() {
     data = personData.results;
     originalData = data;
     showPersonCards(data, 1);    
+    addPagination();
     cards = document.querySelectorAll(".card");
     if(data.length) {
       addListenersForCards();
@@ -91,6 +92,7 @@ searchSubmit.addEventListener('click', function(e){
     return match.includes(inputValue);
   });
   showPersonCards(data, 1);  
+  addPagination();
   cards = document.querySelectorAll(".card");
   if (data.length) {
     addListenersForCards();
@@ -141,8 +143,7 @@ function createCard(person=null, index=0) {
   const firstIndex = cardsPerPage * page - cardsPerPage;
   const lastIndex = cardsPerPage * page;
   galleryDiv.innerHTML = '';
-  paginationUl.innerHTML = '';
-  addPagination();
+//  addPagination();
   if(!data.length) {
     createCard();
   } else {
@@ -156,7 +157,7 @@ function createCard(person=null, index=0) {
 }
 
 /**
- * Adds a listener to each card in gallery for click events. This function is called
+ * Adds a listener to each card in gallery for click/keyup events. This function is called
  * everytime the card view changes by search or pagination change.
  */
  function addListenersForCards() {
@@ -164,8 +165,15 @@ function createCard(person=null, index=0) {
     card.addEventListener('click', function() {
       createModal(data, this.id);  
       currentModal = parseInt(this.id); 
-    })
-  })
+    });
+    card.addEventListener('keyup', function(e) {
+      if(e.key === "Enter") {
+        createModal(data, this.id);  
+        currentModal = parseInt(this.id); 
+      }
+
+    });
+  });
 }
 
 /**
@@ -196,16 +204,17 @@ function createModal(data, index) {
  * @param {array} data 
  */
 function addPagination() {
+  paginationUl.innerHTML = '';
   const pages = Math.ceil(data.length/cardsPerPage);
   
   for (let i = 0; i < pages; i++) {
     if(i === 0) {
       const paginationHTML = `
         <li>
-          <button type="button" class="pagination-button active">${i+1}</button>
+          <button type="button" class="pagination-button active-button">${i+1}</button>
         </li>
         `;
-        paginationUl.insertAdjacentHTML('beforeend', paginationHTML);
+      paginationUl.insertAdjacentHTML('beforeend', paginationHTML);
     } else {
       const paginationHTML = `
         <li>
@@ -216,18 +225,23 @@ function addPagination() {
     }       
   }  
 
-  const paginationButtons = document.querySelectorAll(".pagination-button");
-  paginationButtons.forEach(button => {
-    button.addEventListener('click', function(e) {
-        document.querySelector(".active").classList.remove("active");
-        e.target.classList.add("active");
-        showPersonCards(data, e.target.innerHTML);  
-        cards = document.querySelectorAll(".card");  
-        if (data.length) {
-          addListenersForCards();
-        }  
-    });
+  paginationUl.addEventListener('click', function(e) {
+    if(e.target.tagName === 'BUTTON') {
+      showPersonCards(data, e.target.innerHTML);           
+      cards = document.querySelectorAll(".card");  
+      document.querySelector(".active-button").classList.remove("active-button");
+      e.target.classList.add("active-button");
+      if (data.length) {
+        addListenersForCards();
+      }  
+    }
   });
+  // const paginationButtons = document.querySelectorAll(".pagination-button");
+  // paginationButtons.forEach(button => {
+  //   button.addEventListener('click', function(e) {
+  
+  //   });
+  // });
 }
 
 
