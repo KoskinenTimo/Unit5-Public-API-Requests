@@ -1,9 +1,16 @@
 ////////////////////////////////////////
 // SELECTORS/VARIABLES/DATA CALLS
-// AND ISERTING NEEDED ELEMENTS
+// AND INSERTING NEEDED ELEMENTS
 ////////////////////////////////////////
 
+const openAPIUrl = 'https://randomuser.me/api/?results=40&noinfo&nat=ca,de,dk,es,fi,fr,gb,us';
 const searchContainer = document.querySelector(".search-container");
+
+// Gets a promise from getJSON to handle a request, if resolved, calls for 'dataCallback',
+// logs the error if unsuccesful.
+getJSON(openAPIUrl)
+  .then(dataCallback)
+  .catch(err => console.log(err));
 
 createSearchBox();
 
@@ -27,25 +34,41 @@ let data = ''; // data array that changes whenever a search is done
 let originalData = ''; // original data that does not change after initial set
 
 /**
- * Gets 40 profiles with western nationality. After receiving the data, creates the first gallery view.
+ * Gets 40 profiles with western nationality. Return a promise to be handled.
+ * @param {string} url 
+ * @returns {promise}
  */
-let xhr = new XMLHttpRequest();
-xhr.onreadystatechange = function() {
-  if (xhr.readyState === 4) {
-    let personData = JSON.parse(xhr.responseText);
-    data = personData.results;
-    originalData = data;
-    showPersonCards(data, 1);    
-    addPagination();
-    cards = document.querySelectorAll(".card");
-    if(data.length) {
-      addListenersForCards();
-    }
-    
-  }  
-};
-xhr.open('GET', 'https://randomuser.me/api/?results=40&noinfo&nat=ca,de,dk,es,fi,fr,gb,us');
-xhr.send();
+function getJSON(url) {
+  return new Promise((resolve,reject) => {
+    let xhr = new XMLHttpRequest();
+    xhr.open('GET', url);
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        let personData = JSON.parse(xhr.responseText);
+        resolve(personData);
+      } else {
+        reject( Error(xhr.statusText));
+      }
+    }; 
+    xhr.onerror = () => reject( Error("NETWORK ERROR!"));
+    xhr.send();
+  });  
+}
+
+/**
+ * Callback to display cards and pagination from data.
+ * @param {array} personData 
+ */
+function dataCallback(personData) {
+  data = personData.results;
+  originalData = data;
+  showPersonCards(data, 1);    
+  addPagination();
+  cards = document.querySelectorAll(".card");
+  if(data.length) {
+    addListenersForCards();
+  }    
+}
 
 ////////////////////////////////////////
 // SEARCH BAR
