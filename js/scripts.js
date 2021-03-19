@@ -3,7 +3,7 @@
 // AND INSERTING NEEDED ELEMENTS
 ////////////////////////////////////////
 
-const openAPIUrl = 'https://randomuser.me/api/?results=12&noinfo&nat=ca,de,dk,es,fi,fr,gb,us';
+const openAPIUrl = 'https://randomuser.me/api/?results=50&noinfo&nat=ca,de,dk,es,fi,fr,gb,us';
 const searchContainer = document.querySelector(".search-container");
 
 // Gets a promise from getJSON to handle a request, if resolved, calls for 'dataCallback',
